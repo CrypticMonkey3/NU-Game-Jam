@@ -1,2 +1,2 @@
 # NU Game Jam 2024! :)
-Pong style game
+Pong style game with cats
