@@ -1,1 +1,1 @@
-# NU-Game-Jam
+# NU Game Jam 2024! :)
