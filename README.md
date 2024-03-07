@@ -1,4 +1,3 @@
-# NU-Game-Jam
 import pygame
 import sys
 # Initialize Pygame
@@ -20,8 +19,10 @@ paddle_width = 10
 paddle_height = 100
 #the window is 300 so the middle is 300
 player1 = pygame.Rect(50, 300 , paddle_width, paddle_height)
-ball = pygame.Rect( 385 , 285 , 30 , 30 )
 
+ball = pygame.Rect(WINDOW_WIDTH // 2 - 15, WINDOW_HEIGHT // 2 - 15, 30,30)
+ball_speed_x = -1
+ball_speed_y = 1
 def handleInputs( ):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -42,6 +43,12 @@ def draw():
     pygame.draw.rect(window, (0, 0, 0), player1)
 
 #end handle event
+
+def ball_restart():
+    global ball_speed_x, ball_speed_y
+    ball.center = (WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
+    ball_speed_x *= -1
+    ball_speed_y *= -1
 
 def gameLoop():
     """this is the main game loop. The function never really returns"""
