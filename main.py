@@ -52,23 +52,28 @@ class Text:
         :param str new_message: The new message
         :return: None
         """
-        filler_surf = self._font_surf.copy()
-        filler_surf.fill(WHITE)
-        self._surface.blit(filler_surf, self._pos)
-        pygame.display.update(Rect(self._pos[0], self._pos[1], self._font_surf.get_width(),
-                                   self._font_surf.get_height()))
+        self._font_surf.fill(WHITE)
+        self.draw()
 
-        self._font_surf = Font(self._font_dir, self._size).render(new_message, False, self._color).convert_alpha(self._surface)
-        self.move_pos(self._pos[0], self._pos[1])
-        self._surface.blit(self._font_surf, self._pos)
-        pygame.display.update(Rect(self._pos[0], self._pos[1], self._font_surf.get_width(),
-                                   self._font_surf.get_height()))
+        self._font_surf = Font(self._font_dir, self._size).render(new_message, False, self._color).\
+            convert_alpha(self._surface)
+        self.draw()
 
-    def move_pos(self, x, y):
-        self._pos = (
-            self._surface.get_width() + x - self._font_surf.get_width() if x < 0 else self._pos[0],
-            self._surface.get_height() + y - self._font_surf.get_height() if y < 0 else self._pos[1]
+    def draw(self):
+        screen_pos = (
+            self._surface.get_width() + self._pos[0] - self._font_surf.get_width() if self._pos[0] < 0 else self._pos[0],
+            self._surface.get_height() + self._pos[1] - self._font_surf.get_height() if self._pos[1] < 0 else self._pos[1]
         )
+        self._surface.blit(self._font_surf, screen_pos)
+        pygame.display.update(Rect(screen_pos[0], screen_pos[1], self._font_surf.get_width(), self._font_surf.get_height()))
+
+    @property
+    def pos(self):
+        return self._pos
+
+    @pos.setter
+    def pos(self, new_pos):
+        self._pos = new_pos
 
 
 class Sprite:
@@ -113,6 +118,10 @@ class Sprite:
         # only updating a part of the screen for optimal performance.
         pygame.display.update(self._rect)
 
+    @property
+    def surface(self):
+        return self._image
+
 
 class Cat(Sprite):
     def __init__(self, *args):
@@ -148,9 +157,10 @@ class Game:
         self.__sprite_manager.add_objects("Player", Player, 2, self.__surface,
                                           ["Graphics/bat.png", "Graphics/bat_outline.png"],
                                           (0, 0))
-        self.__sprite_manager.object_pool["Player"][0].move_pos(50, self.__surface.get_height() // 2)
+        # --- Align the player bats' centres to the centre of the screen.
+        self.__sprite_manager.object_pool["Player"][0].move_pos(50, (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player"][0].surface.get_height() // 2))
         self.__sprite_manager.object_pool["Player"][1].move_pos(self.__surface.get_width() - 50,
-                                                                self.__surface.get_height() // 2)
+                                                                (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player"][1].surface.get_height() // 2))
 
         self.__sprite_manager.add_objects("Ball", Ball, 1, self.__surface,
                                           ["Graphics/ball.png", "Graphics/ball_outline.png"],
@@ -160,7 +170,7 @@ class Game:
 
         self.__sprite_manager.add_objects("Text", Text, 1, self.__surface,
                                           "", "Fonts/Arcadepix.TTF", 16, (0, 0), (0, 0, 0))
-        self.__sprite_manager.object_pool["Text"][0].move_pos(-5, 5)
+        self.__sprite_manager.object_pool["Text"][0].pos = (-5, 5)
 
     def __countdown(self) -> None:
         ...
