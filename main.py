@@ -59,7 +59,11 @@ class Text:
             convert_alpha(self._surface)
         self.draw()
 
-    def draw(self):
+    def draw(self) -> None:
+        """
+        Blits the text onto the screen
+        :return: None
+        """
         screen_pos = (
             self._surface.get_width() + self._pos[0] - self._font_surf.get_width() if self._pos[0] < 0 else self._pos[0],
             self._surface.get_height() + self._pos[1] - self._font_surf.get_height() if self._pos[1] < 0 else self._pos[1]
@@ -74,6 +78,28 @@ class Text:
     @pos.setter
     def pos(self, new_pos):
         self._pos = new_pos
+
+    @property
+    def color(self):
+        return self._color
+
+    @color.setter
+    def color(self, new_color: Union[Tuple[int, int, int], Tuple[int, int, int, int]]):
+        self._color = new_color
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, new_size: int):
+        self._size = new_size
+        self._font_surf = Font(self._font_dir, new_size).render(self._message, False, self.color).\
+            convert_alpha(self._surface)
+
+    @property
+    def surface(self) -> pygame.Surface:
+        return self._font_surf
 
 
 class Sprite:
@@ -90,9 +116,12 @@ class Sprite:
 
         self._rect = Rect(args[2][0], args[2][1], self._image.get_width(), self._image.get_height())
 
-    def move_pos(self, x: int, y: int):
+    def move_pos(self, x: int, y: int) -> None:
         """
         Moves the position of where the object is drawn on the screen
+        :param int x: x modifier
+        :param int y: y modifier
+        :return: None
         """
         # remove the previous positioned object from the screen
         self._surface.blit(self._filler_surf, self._rect)
@@ -105,10 +134,11 @@ class Sprite:
             self._image.get_height()
         )
 
-    def draw(self, outline: bool = False):
+    def draw(self, outline: bool = False) -> None:
         """
         Draws the sprite onto the main surface.
         :param bool outline: Whether we are drawing the sprites outline or not.
+        :return: None
         """
         self._surface.blit(self._image, self._rect)
         if outline and self._image_outline:
@@ -120,6 +150,9 @@ class Sprite:
 
     @property
     def surface(self):
+        """
+        Returns the sprite's surface
+        """
         return self._image
 
 
@@ -157,35 +190,57 @@ class Game:
         self.__sprite_manager.add_objects("Player", Player, 2, self.__surface,
                                           ["Graphics/bat.png", "Graphics/bat_outline.png"],
                                           (0, 0))
-        # --- Align the player bats' centres to the centre of the screen.
-        self.__sprite_manager.object_pool["Player"][0].move_pos(50, (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player"][0].surface.get_height() // 2))
-        self.__sprite_manager.object_pool["Player"][1].move_pos(self.__surface.get_width() - 50,
-                                                                (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player"][1].surface.get_height() // 2))
 
         self.__sprite_manager.add_objects("Ball", Ball, 1, self.__surface,
                                           ["Graphics/ball.png", "Graphics/ball_outline.png"],
                                           (0, 0))
-        self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__surface.get_width() // 2,
-                                                              self.__surface.get_height() // 2)
 
-        self.__sprite_manager.add_objects("Text", Text, 1, self.__surface,
+        self.__sprite_manager.add_objects("Text", Text, 2, self.__surface,
                                           "", "Fonts/Arcadepix.TTF", 16, (0, 0), (0, 0, 0))
         self.__sprite_manager.object_pool["Text"][0].pos = (-5, 5)
+        self.__sprite_manager.object_pool["Text"][1].color = (184, 184, 184)
+        self.__sprite_manager.object_pool["Text"][1].size = 256
+        self.__sprite_manager.object_pool["Text"][1].pos = ((self.__surface.get_width() // 2) - (self.__sprite_manager.object_pool["Text"][1].surface.get_width() // 2), 100)
 
     def __countdown(self) -> None:
-        ...
+        """
+        Countdown until game restarts.
+        :return: None
+        """
+        self.__sprite_manager.object_pool["Text"][1].update_message("3")
+        pygame.time.delay(1000)
+        self.__sprite_manager.object_pool["Text"][1].update_message("2")
+        pygame.time.delay(1000)
+        self.__sprite_manager.object_pool["Text"][1].update_message("1")
+        pygame.time.delay(1000)
+        self.__sprite_manager.object_pool["Text"][1].update_message("GO!")
+        pygame.time.delay(500)
+        self.__sprite_manager.object_pool["Text"][1].update_message("")
 
     def __reset_game(self) -> None:
         """
         Resets the positions of the players and the ball to the centre of the screen.
+        :return: None
         """
+        # --- Align the player bats' centres to the centre of the screen.
+        self.__sprite_manager.object_pool["Player"][0].move_pos(50,
+                                                                (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player"][0].surface.get_height() // 2))
+        self.__sprite_manager.object_pool["Player"][1].move_pos(self.__surface.get_width() - 50,
+                                                                (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player"][1].surface.get_height() // 2))
+
+        self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__surface.get_width() // 2,
+                                                              self.__surface.get_height() // 2)
+
         self.__sprite_manager.object_pool["Player"][0].draw(True)  # Player 1
         self.__sprite_manager.object_pool["Player"][1].draw(True)  # Player 2
         self.__sprite_manager.object_pool["Ball"][0].draw(True)  # Ball 1
 
+        self.__countdown()
+
     def __check_events(self) -> None:
         """
         Checks any pygame events that occur.
+        :return: None
         """
         event = pygame.event.poll()
         if event.type == KEYDOWN and event.key == K_ESCAPE:
@@ -194,18 +249,20 @@ class Game:
     def __process(self) -> None:
         """
         All the processes of the game occur inside this method.
+        :return: None
         """
         self.__check_events()
-        self.__reset_game()
 
         self.__sprite_manager.object_pool["Text"][0].update_message(f"{FPS_CLOCK.get_fps():0.2f} FPS")  # update FPS
 
     def run(self) -> None:
         """
         Method to call, in order to run the game
+        :return: None
         """
         self.__surface.fill((255, 255, 255))
         pygame.display.update()
+        self.__reset_game()
 
         while self.__running:
             self.__process()
