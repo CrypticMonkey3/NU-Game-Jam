@@ -1,10 +1,12 @@
 from pygame.locals import *
+from pygame.font import Font
 from typing import *
 import pygame
 
 pygame.init()
 FPS_CLOCK = pygame.time.Clock()
 FPS = 60
+WHITE = (255, 255, 255)
 
 
 class Sprite:
@@ -12,7 +14,7 @@ class Sprite:
         self._surface = surface
         self._image = pygame.image.load(image_dirs[0]).convert_alpha(surface)
         self._filler_surf = self._image.copy()
-        self._filler_surf.fill((255, 255, 255))
+        self._filler_surf.fill(WHITE)
         self._start_pos = init_pos
 
         self._image_outline = image_dirs[1]
@@ -43,6 +45,7 @@ class Sprite:
         """
         self._surface.blit(self._image, self._rect)
         if outline and self._image_outline:
+            self._surface.blit(self._filler_surf, self._rect)
             self._surface.blit(self._image_outline, self._rect)
 
         # only updating a part of the screen for optimal performance.
@@ -80,7 +83,13 @@ class Game:
                                 (50, self.__surface.get_height() // 2))
         self.__player2 = Player(self.__surface, ["Graphics/bat.png", "Graphics/bat_outline.png"],
                                 (self.__surface.get_width() - 50, self.__surface.get_height() // 2))
-        self.__ball = Ball(self.__surface, ["Graphics/ball.png", "Graphics/ball_outline.png"], (0, 0))
+        self.__ball = Ball(self.__surface, ["Graphics/ball.png", "Graphics/ball_outline.png"],
+                           (self.__surface.get_width() // 2, self.__surface.get_height() // 2))
+        # [(FPS text)]
+        self.__text_objects: List[Any] = [()]  # acts as an array for all the text objects
+
+    def __countdown(self) -> None:
+        ...
 
     def __reset_game(self) -> None:
         """
@@ -88,6 +97,31 @@ class Game:
         """
         self.__player1.draw(True)
         self.__player2.draw(True)
+        self.__ball.draw(True)
+
+    def __write2screen(self, message: str, font_dir: str, size: int, pos: Tuple[int, int],
+                       color: Tuple[int, int, int]) -> None:
+        """
+        Writes a message with the passed parameters onto the screen.
+        :param str message: Message to put on the screen
+        :param str font_dir: Type of font we want to use
+        :param int size: Font size
+        :param Tuple[int, int] pos: Where on the screen we want to place the message
+        :param Tuple[int, int, int] color: The colour of the text
+        """
+        if self.__text_objects[0]:
+            self.__text_objects[0][0].fill(WHITE)
+            self.__surface.blit(self.__text_objects[0][0], self.__text_objects[0][1])
+            pygame.display.update(Rect(self.__text_objects[0][1][0], self.__text_objects[0][1][1],
+                                       self.__text_objects[0][0].get_width(),
+                                       self.__text_objects[0][0].get_height()))
+
+        font_surf = Font(font_dir, size).render(message, False, color).convert_alpha(self.__surface)
+        pos = (self.__surface.get_width() + pos[0] - font_surf.get_width() if pos[0] < 0 else pos[0],
+               self.__surface.get_height() + pos[1] - font_surf.get_height() if pos[1] < 0 else pos[1])
+        self.__surface.blit(font_surf, pos)
+        pygame.display.update(Rect(pos[0], pos[1], font_surf.get_width(), font_surf.get_height()))
+        self.__text_objects[0] = (font_surf, pos)
 
     def __check_events(self) -> None:
         """
@@ -113,6 +147,7 @@ class Game:
 
         while self.__running:
             self.__process()
+            self.__write2screen(f"{FPS_CLOCK.get_fps():0.2f} FPS", "Fonts/Arcadepix.TTF", 16, (-5, 5), (0, 0, 0))
             FPS_CLOCK.tick(FPS)
 
 
