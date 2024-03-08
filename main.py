@@ -9,6 +9,14 @@ FPS = 60
 WHITE = (255, 255, 255)
 
 
+class SpriteManager:
+    def __init__(self):
+        ...
+
+    def __new__(cls):
+        ...
+
+
 class Sprite:
     def __init__(self, surface: pygame.Surface, image_dirs: List[str], init_pos: Tuple[int, int]):
         self._surface = surface
