@@ -1,7 +1,7 @@
 # NU Game Jam 2024! :)
 Pong game... or is it?
 
-The game may look like your average pong game but with some purr-fect powerups well suited to the Game Jam's theme of cats.
+The game may look like your average pong game but with some purr-fect powerups well suited to the Game Jam's theme of cats, it can make some old school classic more exciting.
 
 ## Powerups
 These activate only if the ball hits one when they fall down from the screen.
