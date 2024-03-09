@@ -10,7 +10,7 @@ These activate only if the ball hits one when they fall down from the screen.
 - Blue Cat: Gives your bat more speed
 - Green Cat: Makes your bat longer
 - Black Cat: Creates another bat the player can switch to
-- White Cat: ...
+- White Cat: More balls!
 
 ## To do
 1. Centralise fonts around a given point
