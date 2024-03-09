@@ -2,6 +2,7 @@ from pygame.locals import *
 from pygame.font import Font
 from typing import *
 import pygame
+from datetime import datetime
 
 pygame.init()
 FPS_CLOCK = pygame.time.Clock()
@@ -46,9 +47,9 @@ class Text:
         self._color: Tuple[int, int, int] = args[5]
         self._font_surf: pygame.Surface = Font(args[2], args[3]).render(args[1], False, args[5]).convert_alpha(args[0])
 
-    def update_message(self, new_message: str) -> None:
+    def update_text(self, new_message: str) -> None:
         """
-        Updates the message in this text surface
+        Updates the text in the currently displayed text surface
         :param str new_message: The new message
         :return: None
         """
@@ -57,6 +58,7 @@ class Text:
 
         self._font_surf = Font(self._font_dir, self._size).render(new_message, False, self._color).\
             convert_alpha(self._surface)
+        self._message = new_message
         self.draw()
 
     def draw(self) -> None:
@@ -100,6 +102,10 @@ class Text:
     @property
     def surface(self) -> pygame.Surface:
         return self._font_surf
+
+    @property
+    def message(self):
+        return self._message
 
 
 class Sprite:
@@ -183,6 +189,8 @@ class Game:
     def __init__(self):
         self.__running = True
         self.__surface = pygame.display.set_mode([0, 0], pygame.FULLSCREEN)
+        self.__timer = datetime(2000, 1, 1, 0, 0, 0, 0)
+        self.__countdown_values = ["3", "2", "1", "GO!", ""]
 
         self.__sprite_manager = SpriteManager()
         self.__sprite_manager.add_objects("Cat", Cat, 1, self.__surface, ["Graphics/cat.png", ""], (0, 0))
@@ -207,15 +215,10 @@ class Game:
         Countdown until game restarts.
         :return: None
         """
-        self.__sprite_manager.object_pool["Text"][1].update_message("3")
-        pygame.time.delay(1000)
-        self.__sprite_manager.object_pool["Text"][1].update_message("2")
-        pygame.time.delay(1000)
-        self.__sprite_manager.object_pool["Text"][1].update_message("1")
-        pygame.time.delay(1000)
-        self.__sprite_manager.object_pool["Text"][1].update_message("GO!")
-        pygame.time.delay(500)
-        self.__sprite_manager.object_pool["Text"][1].update_message("")
+        # if a second has elapsed
+        if (datetime.now() - self.__timer).total_seconds() > 1:
+            self.__sprite_manager.object_pool["Text"][1].update_text(self.__countdown_values[self.__countdown_values.index(self.__sprite_manager.object_pool["Text"][1].message) + 1])
+            self.__timer = datetime.now()
 
     def __reset_game(self) -> None:
         """
@@ -235,7 +238,8 @@ class Game:
         self.__sprite_manager.object_pool["Player"][1].draw(True)  # Player 2
         self.__sprite_manager.object_pool["Ball"][0].draw(True)  # Ball 1
 
-        self.__countdown()
+        self.__sprite_manager.object_pool["Text"][1].update_text("3")  # kickstart the countdown
+        self.__timer = datetime.now()
 
     def __check_events(self) -> None:
         """
@@ -252,8 +256,15 @@ class Game:
         :return: None
         """
         self.__check_events()
+        self.__sprite_manager.object_pool["Text"][0].update_text(f"{FPS_CLOCK.get_fps():0.2f} FPS")  # update FPS
 
-        self.__sprite_manager.object_pool["Text"][0].update_message(f"{FPS_CLOCK.get_fps():0.2f} FPS")  # update FPS
+        if self.__sprite_manager.object_pool["Text"][1].message:
+            self.__countdown()
+
+        elif not self.__sprite_manager.object_pool["Text"][1].message:  # quicker then else
+            # run the game
+            print("game running")
+            ...
 
     def run(self) -> None:
         """
@@ -261,8 +272,8 @@ class Game:
         :return: None
         """
         self.__surface.fill((255, 255, 255))
-        pygame.display.update()
         self.__reset_game()
+        pygame.display.update()
 
         while self.__running:
             self.__process()
