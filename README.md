@@ -13,10 +13,8 @@ These activate only if the ball hits one when they fall down from the screen.
 - White Cat: More balls!
 
 ## To do
-1. Centralise fonts around a given point
-2. Bat movement
-3. Ball movement
-4. Ball collisions
-5. Scoring system
-6. Powerups!
+1. Ball movement
+1. Ball collisions
+1. Scoring system
+1. Powerups!
 

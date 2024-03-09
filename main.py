@@ -47,28 +47,30 @@ class Text:
         self._color: Tuple[int, int, int] = args[5]
         self._font_surf: pygame.Surface = Font(args[2], args[3]).render(args[1], False, args[5]).convert_alpha(args[0])
 
-    def update_text(self, new_message: str) -> None:
+    def update_text(self, new_message: str, centralise: bool = False) -> None:
         """
         Updates the text in the currently displayed text surface
         :param str new_message: The new message
+        :param bool centralise: Whether we need to centralise the text around the given position
         :return: None
         """
         self._font_surf.fill(WHITE)
-        self.draw()
+        # if it was centralised before, good chance it will be again.
+        self.draw(mod_x=(-self._font_surf.get_rect().centerx if centralise else 0))
 
         self._font_surf = Font(self._font_dir, self._size).render(new_message, False, self._color).\
             convert_alpha(self._surface)
         self._message = new_message
-        self.draw()
+        self.draw(mod_x=(-self._font_surf.get_rect().centerx if centralise else 0))
 
-    def draw(self) -> None:
+    def draw(self, mod_x: int = 0, mod_y: int = 0) -> None:
         """
         Blits the text onto the screen
         :return: None
         """
         screen_pos = (
-            self._surface.get_width() + self._pos[0] - self._font_surf.get_width() if self._pos[0] < 0 else self._pos[0],
-            self._surface.get_height() + self._pos[1] - self._font_surf.get_height() if self._pos[1] < 0 else self._pos[1]
+            mod_x + (self._surface.get_width() + self._pos[0] - self._font_surf.get_width() if self._pos[0] < 0 else self._pos[0]),
+            mod_y + (self._surface.get_height() + self._pos[1] - self._font_surf.get_height() if self._pos[1] < 0 else self._pos[1])
         )
         self._surface.blit(self._font_surf, screen_pos)
         pygame.display.update(Rect(screen_pos[0], screen_pos[1], self._font_surf.get_width(), self._font_surf.get_height()))
@@ -96,7 +98,7 @@ class Text:
     @size.setter
     def size(self, new_size: int):
         self._size = new_size
-        self._font_surf = Font(self._font_dir, new_size).render(self._message, False, self.color).\
+        self._font_surf = Font(self._font_dir, new_size).render(self._message, False, self.color). \
             convert_alpha(self._surface)
 
     @property
@@ -177,6 +179,11 @@ class Player(Sprite):
         self._rect = Rect(self._rect[0], self._rect[1], self._image.get_width(), self._image.get_height())
 
         self.__score = 0
+        self.__bat_speed = 3
+
+    @property
+    def speed(self):
+        return self.__bat_speed
 
 
 class Ball(Sprite):
@@ -195,9 +202,10 @@ class Game:
         self.__sprite_manager = SpriteManager()
         self.__sprite_manager.add_objects("Cat", Cat, 1, self.__surface, ["Graphics/cat.png", ""], (0, 0))
 
-        self.__sprite_manager.add_objects("Player", Player, 2, self.__surface,
-                                          ["Graphics/bat.png", "Graphics/bat_outline.png"],
-                                          (0, 0))
+        for i in range(1, 3):
+            self.__sprite_manager.add_objects(f"Player{i}", Player, 1, self.__surface,
+                                              ["Graphics/bat.png", "Graphics/bat_outline.png"],
+                                              (0, 0))
 
         self.__sprite_manager.add_objects("Ball", Ball, 1, self.__surface,
                                           ["Graphics/ball.png", "Graphics/ball_outline.png"],
@@ -217,7 +225,7 @@ class Game:
         """
         # if a second has elapsed
         if (datetime.now() - self.__timer).total_seconds() > 1:
-            self.__sprite_manager.object_pool["Text"][1].update_text(self.__countdown_values[self.__countdown_values.index(self.__sprite_manager.object_pool["Text"][1].message) + 1])
+            self.__sprite_manager.object_pool["Text"][1].update_text(self.__countdown_values[self.__countdown_values.index(self.__sprite_manager.object_pool["Text"][1].message) + 1], True)
             self.__timer = datetime.now()
 
     def __reset_game(self) -> None:
@@ -226,19 +234,20 @@ class Game:
         :return: None
         """
         # --- Align the player bats' centres to the centre of the screen.
-        self.__sprite_manager.object_pool["Player"][0].move_pos(50,
-                                                                (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player"][0].surface.get_height() // 2))
-        self.__sprite_manager.object_pool["Player"][1].move_pos(self.__surface.get_width() - 50,
-                                                                (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player"][1].surface.get_height() // 2))
+        self.__sprite_manager.object_pool["Player1"][0].move_pos(50,
+                                                                 (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player1"][0].surface.get_height() // 2))
+        self.__sprite_manager.object_pool["Player2"][0].move_pos(self.__surface.get_width() - 50,
+                                                                 (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player2"][0].surface.get_height() // 2))
 
         self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__surface.get_width() // 2,
                                                               self.__surface.get_height() // 2)
 
-        self.__sprite_manager.object_pool["Player"][0].draw(True)  # Player 1
-        self.__sprite_manager.object_pool["Player"][1].draw(True)  # Player 2
+        self.__sprite_manager.object_pool["Player1"][0].draw(True)  # Player 1
+        self.__sprite_manager.object_pool["Player2"][0].draw(True)  # Player 2
         self.__sprite_manager.object_pool["Ball"][0].draw(True)  # Ball 1
 
-        self.__sprite_manager.object_pool["Text"][1].update_text("3")  # kickstart the countdown
+        # kickstart the countdown
+        self.__sprite_manager.object_pool["Text"][1].update_text("3", True)
         self.__timer = datetime.now()
 
     def __check_events(self) -> None:
@@ -249,6 +258,19 @@ class Game:
         event = pygame.event.poll()
         if event.type == KEYDOWN and event.key == K_ESCAPE:
             self.__running = False
+
+    def __check_inputs(self) -> None:
+        """
+        Checks for any peripheral inputs
+        :return: None
+        """
+        keys = pygame.key.get_pressed()
+
+        self.__sprite_manager.object_pool["Player1"][0].move_pos(0,
+                                                                 self.__sprite_manager.object_pool["Player1"][0].speed * (-keys[K_w] + keys[K_s]))
+
+        self.__sprite_manager.object_pool["Player2"][0].move_pos(0,
+                                                                 self.__sprite_manager.object_pool["Player1"][0].speed * (-keys[K_UP] + keys[K_DOWN]))
 
     def __process(self) -> None:
         """
@@ -261,10 +283,11 @@ class Game:
         if self.__sprite_manager.object_pool["Text"][1].message:
             self.__countdown()
 
-        elif not self.__sprite_manager.object_pool["Text"][1].message:  # quicker then else
-            # run the game
-            print("game running")
-            ...
+        elif not self.__sprite_manager.object_pool["Text"][1].message:  # else if not counting down, run the game
+            self.__check_inputs()
+            self.__sprite_manager.object_pool["Player1"][0].draw()  # Player 1
+            self.__sprite_manager.object_pool["Player2"][0].draw()  # Player 2
+            self.__sprite_manager.object_pool["Ball"][0].draw()  # Ball 1
 
     def run(self) -> None:
         """
