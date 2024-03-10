@@ -4,11 +4,13 @@ from typing import *
 import pygame
 from datetime import datetime
 from random import choice
+from winsound import Beep
 
 pygame.init()
 FPS_CLOCK = pygame.time.Clock()
 FPS = 60
 WHITE = (255, 255, 255)
+FADED_BLACK = (184, 184, 184)
 
 
 class SpriteManager:
@@ -189,6 +191,10 @@ class Player(Sprite):
         self._direction = (0, 1)
         self.__score = 0
 
+    @property
+    def score(self) -> int:
+        return self.__score
+
 
 class Ball(Sprite):
     def __init__(self, *args):
@@ -196,12 +202,24 @@ class Ball(Sprite):
         self._speed = 3
         self._direction = (choice([1, -1]), choice([1, -1]))
 
-    def move_pos(self, x: int, y: int):
+    def move_pos(self, x: int, y: int) -> int:
         """
-        The same as in the parent class
+        The same functionality as in the parent class, but also checks if we hit screen boundaries.
+        :return: int, which player has scored, 0 denoting that no one has scored yet.
         """
         super(Ball, self).move_pos(x, y)
-        # add extra functionality- what happens when ball collides to things
+
+        if self._rect[1] == 0 or self._rect[1] == self._surface.get_height() - self._rect.height:
+            self._direction = (self._direction[0], -self._direction[1])
+            Beep(441, 16)
+
+        elif self._rect[0] == 0:
+            return 2
+
+        elif self._rect[0] == self._surface.get_width() - self._rect.width:
+            return 1
+
+        return 0
 
 
 class Game:
@@ -223,12 +241,16 @@ class Game:
                                           ["Graphics/ball.png", "Graphics/ball_outline.png"],
                                           (0, 0))
 
-        self.__sprite_manager.add_objects("Text", Text, 2, self.__surface,
+        # Text 0: FPS, Text 1: Reset Countdown, Text 2: Player1 Score, Text3: Player2 Score
+        self.__sprite_manager.add_objects("Text", Text, 4, self.__surface,
                                           "", "Fonts/Arcadepix.TTF", 16, (0, 0), (0, 0, 0))
         self.__sprite_manager.object_pool["Text"][0].pos = (-5, 5)
-        self.__sprite_manager.object_pool["Text"][1].color = (184, 184, 184)
         self.__sprite_manager.object_pool["Text"][1].size = 256
         self.__sprite_manager.object_pool["Text"][1].pos = ((self.__surface.get_width() // 2) - (self.__sprite_manager.object_pool["Text"][1].surface.get_width() // 2), 100)
+        self.__sprite_manager.object_pool["Text"][2].size = 128
+        self.__sprite_manager.object_pool["Text"][2].pos = ((self.__surface.get_width() // 4) - (self.__sprite_manager.object_pool["Text"][2].surface.get_width() // 2), 200)
+        self.__sprite_manager.object_pool["Text"][3].size = 128
+        self.__sprite_manager.object_pool["Text"][3].pos = (((self.__surface.get_width() // 4) * 3) - (self.__sprite_manager.object_pool["Text"][3].surface.get_width() // 2), 200)
 
     def __countdown(self) -> None:
         """
@@ -258,7 +280,7 @@ class Game:
         self.__sprite_manager.object_pool["Player2"][0].draw(True)  # Player 2
         self.__sprite_manager.object_pool["Ball"][0].draw(True)  # Ball 1
 
-        # kickstart the countdown
+        # --- kickstart the countdown
         self.__sprite_manager.object_pool["Text"][1].update_text("3", True)
         self.__timer = datetime.now()
 
@@ -297,7 +319,11 @@ class Game:
 
         elif not self.__sprite_manager.object_pool["Text"][1].message:  # else if not counting down, run the game
             self.__check_inputs()
-            self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__sprite_manager.object_pool["Ball"][0].velocity[0], self.__sprite_manager.object_pool["Ball"][0].velocity[1])
+
+            player_scored = self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__sprite_manager.object_pool["Ball"][0].velocity[0], self.__sprite_manager.object_pool["Ball"][0].velocity[1])
+            if player_scored != 0:
+                ...
+
             self.__sprite_manager.object_pool["Player1"][0].draw()  # Player 1
             self.__sprite_manager.object_pool["Player2"][0].draw()  # Player 2
             self.__sprite_manager.object_pool["Ball"][0].draw()  # Ball 1
