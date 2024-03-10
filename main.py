@@ -3,6 +3,7 @@ from pygame.font import Font
 from typing import *
 import pygame
 from datetime import datetime
+from random import choice
 
 pygame.init()
 FPS_CLOCK = pygame.time.Clock()
@@ -123,6 +124,8 @@ class Sprite:
             self._image_outline = pygame.image.load(args[1][1]).convert_alpha(args[0])
 
         self._rect = Rect(args[2][0], args[2][1], self._image.get_width(), self._image.get_height())
+        self._direction = (0, 0)
+        self._speed = 0
 
     def move_pos(self, x: int, y: int) -> None:
         """
@@ -163,6 +166,10 @@ class Sprite:
         """
         return self._image
 
+    @property
+    def velocity(self):
+        return self._direction[0] * self._speed, self._direction[1] * self._speed
+
 
 class Cat(Sprite):
     def __init__(self, *args):
@@ -178,18 +185,23 @@ class Player(Sprite):
         self._filler_surf = pygame.transform.rotate(self._filler_surf, 90)
         self._rect = Rect(self._rect[0], self._rect[1], self._image.get_width(), self._image.get_height())
 
+        self._speed = 3
+        self._direction = (0, 1)
         self.__score = 0
-        self.__bat_speed = 3
-
-    @property
-    def speed(self):
-        return self.__bat_speed
 
 
 class Ball(Sprite):
     def __init__(self, *args):
         super().__init__(*args)
-        self.__speed = 1
+        self._speed = 3
+        self._direction = (choice([1, -1]), choice([1, -1]))
+
+    def move_pos(self, x: int, y: int):
+        """
+        The same as in the parent class
+        """
+        super(Ball, self).move_pos(x, y)
+        # add extra functionality- what happens when ball collides to things
 
 
 class Game:
@@ -267,10 +279,10 @@ class Game:
         keys = pygame.key.get_pressed()
 
         self.__sprite_manager.object_pool["Player1"][0].move_pos(0,
-                                                                 self.__sprite_manager.object_pool["Player1"][0].speed * (-keys[K_w] + keys[K_s]))
+                                                                 self.__sprite_manager.object_pool["Player1"][0].velocity[1] * (-keys[K_w] + keys[K_s]))
 
         self.__sprite_manager.object_pool["Player2"][0].move_pos(0,
-                                                                 self.__sprite_manager.object_pool["Player1"][0].speed * (-keys[K_UP] + keys[K_DOWN]))
+                                                                 self.__sprite_manager.object_pool["Player1"][0].velocity[1] * (-keys[K_UP] + keys[K_DOWN]))
 
     def __process(self) -> None:
         """
@@ -285,6 +297,7 @@ class Game:
 
         elif not self.__sprite_manager.object_pool["Text"][1].message:  # else if not counting down, run the game
             self.__check_inputs()
+            self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__sprite_manager.object_pool["Ball"][0].velocity[0], self.__sprite_manager.object_pool["Ball"][0].velocity[1])
             self.__sprite_manager.object_pool["Player1"][0].draw()  # Player 1
             self.__sprite_manager.object_pool["Player2"][0].draw()  # Player 2
             self.__sprite_manager.object_pool["Ball"][0].draw()  # Ball 1

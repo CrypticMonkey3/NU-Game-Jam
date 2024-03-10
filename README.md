@@ -13,7 +13,6 @@ These activate only if the ball hits one when they fall down from the screen.
 - White Cat: More balls!
 
 ## To do
-1. Ball movement
 1. Ball collisions
 1. Scoring system
 1. Powerups!
