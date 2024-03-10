@@ -214,7 +214,7 @@ class Game:
         self.__sprite_manager = SpriteManager()
         self.__sprite_manager.add_objects("Cat", Cat, 1, self.__surface, ["Graphics/cat.png", ""], (0, 0))
 
-        for i in range(1, 3):
+        for i in range(1, 3):  # repeats for stop - start number of players
             self.__sprite_manager.add_objects(f"Player{i}", Player, 1, self.__surface,
                                               ["Graphics/bat.png", "Graphics/bat_outline.png"],
                                               (0, 0))
