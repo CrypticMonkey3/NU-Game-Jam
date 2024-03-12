@@ -298,8 +298,8 @@ class Game:
         self.__sprite_manager.object_pool["Text"][1].update_text("3", True)
         self.__timer = datetime.now()
 
-        self.__sprite_manager.object_pool["Text"][2].color = (184, 184, 184)
-        self.__sprite_manager.object_pool["Text"][3].color = (184, 184, 184)
+        self.__sprite_manager.object_pool["Text"][2].color = FADED_BLACK
+        self.__sprite_manager.object_pool["Text"][3].color = FADED_BLACK
 
     def __check_events(self) -> None:
         """
