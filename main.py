@@ -169,6 +169,10 @@ class Sprite:
         return self._image
 
     @property
+    def rect(self):
+        return self._rect
+
+    @property
     def velocity(self):
         return self._direction[0] * self._speed, self._direction[1] * self._speed
 
@@ -194,6 +198,10 @@ class Player(Sprite):
     @property
     def score(self) -> int:
         return self.__score
+
+    @score.setter
+    def score(self, new_score):
+        self.__score = new_score
 
 
 class Ball(Sprite):
@@ -262,19 +270,25 @@ class Game:
             self.__sprite_manager.object_pool["Text"][1].update_text(self.__countdown_values[self.__countdown_values.index(self.__sprite_manager.object_pool["Text"][1].message) + 1], True)
             self.__timer = datetime.now()
 
+            # have to chain if here so we can change the colour of the scores once, instead of setting it during
+            # every cycle
+            if not self.__sprite_manager.object_pool["Text"][1].message:
+                self.__sprite_manager.object_pool["Text"][2].color = (0, 0, 0)
+                self.__sprite_manager.object_pool["Text"][3].color = (0, 0, 0)
+
     def __reset_game(self) -> None:
         """
         Resets the positions of the players and the ball to the centre of the screen.
         :return: None
         """
-        # --- Align the player bats' centres to the centre of the screen.
-        self.__sprite_manager.object_pool["Player1"][0].move_pos(50,
-                                                                 (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player1"][0].surface.get_height() // 2))
-        self.__sprite_manager.object_pool["Player2"][0].move_pos(self.__surface.get_width() - 50,
-                                                                 (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player2"][0].surface.get_height() // 2))
+        # --- Re-aligns the player bats' centres to the centre of the screen, no matter where it is
+        self.__sprite_manager.object_pool["Player1"][0].move_pos(50 - self.__sprite_manager.object_pool["Player1"][0].rect.left,
+                                                                 (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player1"][0].surface.get_height() // 2) - self.__sprite_manager.object_pool["Player1"][0].rect.top)
+        self.__sprite_manager.object_pool["Player2"][0].move_pos(self.__surface.get_width() - 50 - self.__sprite_manager.object_pool["Player2"][0].rect.left,
+                                                                 (self.__surface.get_height() // 2) - (self.__sprite_manager.object_pool["Player2"][0].surface.get_height() // 2) - self.__sprite_manager.object_pool["Player2"][0].rect.top)
 
-        self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__surface.get_width() // 2,
-                                                              self.__surface.get_height() // 2)
+        self.__sprite_manager.object_pool["Ball"][0].move_pos((self.__surface.get_width() // 2) - self.__sprite_manager.object_pool["Ball"][0].rect.left,
+                                                              (self.__surface.get_height() // 2) - self.__sprite_manager.object_pool["Ball"][0].rect.top)
 
         self.__sprite_manager.object_pool["Player1"][0].draw(True)  # Player 1
         self.__sprite_manager.object_pool["Player2"][0].draw(True)  # Player 2
@@ -283,6 +297,9 @@ class Game:
         # --- kickstart the countdown
         self.__sprite_manager.object_pool["Text"][1].update_text("3", True)
         self.__timer = datetime.now()
+
+        self.__sprite_manager.object_pool["Text"][2].color = (184, 184, 184)
+        self.__sprite_manager.object_pool["Text"][3].color = (184, 184, 184)
 
     def __check_events(self) -> None:
         """
@@ -304,7 +321,7 @@ class Game:
                                                                  self.__sprite_manager.object_pool["Player1"][0].velocity[1] * (-keys[K_w] + keys[K_s]))
 
         self.__sprite_manager.object_pool["Player2"][0].move_pos(0,
-                                                                 self.__sprite_manager.object_pool["Player1"][0].velocity[1] * (-keys[K_UP] + keys[K_DOWN]))
+                                                                 self.__sprite_manager.object_pool["Player2"][0].velocity[1] * (-keys[K_UP] + keys[K_DOWN]))
 
     def __process(self) -> None:
         """
@@ -313,6 +330,8 @@ class Game:
         """
         self.__check_events()
         self.__sprite_manager.object_pool["Text"][0].update_text(f"{FPS_CLOCK.get_fps():0.2f} FPS")  # update FPS
+        self.__sprite_manager.object_pool["Text"][2].update_text(f"{self.__sprite_manager.object_pool['Player1'][0].score:02d}", True)  # update Player 1's score
+        self.__sprite_manager.object_pool["Text"][3].update_text(f"{self.__sprite_manager.object_pool['Player2'][0].score:02d}", True)  # update Player 2's score
 
         if self.__sprite_manager.object_pool["Text"][1].message:
             self.__countdown()
@@ -320,13 +339,15 @@ class Game:
         elif not self.__sprite_manager.object_pool["Text"][1].message:  # else if not counting down, run the game
             self.__check_inputs()
 
-            player_scored = self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__sprite_manager.object_pool["Ball"][0].velocity[0], self.__sprite_manager.object_pool["Ball"][0].velocity[1])
-            if player_scored != 0:
-                ...
-
             self.__sprite_manager.object_pool["Player1"][0].draw()  # Player 1
             self.__sprite_manager.object_pool["Player2"][0].draw()  # Player 2
+
+            player_scored = self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__sprite_manager.object_pool["Ball"][0].velocity[0], self.__sprite_manager.object_pool["Ball"][0].velocity[1])
             self.__sprite_manager.object_pool["Ball"][0].draw()  # Ball 1
+
+            if player_scored != 0:
+                self.__sprite_manager.object_pool[f"Player{player_scored}"][0].score += 1
+                self.__reset_game()
 
     def run(self) -> None:
         """

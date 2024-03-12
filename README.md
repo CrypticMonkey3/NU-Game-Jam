@@ -13,8 +13,9 @@ These activate only if the ball hits one when they fall down from the screen.
 - White Cat: More balls!
 
 ## To do
-1. Ball collisions with screen
-2. Bat and Ball collisions
-3. Scoring system
-4. Power-ups!
-
+1. Stop flickering
+2. Ball can move in any trajectory, rather than one at 45deg
+3. Add prompt to top left saying how to exit game (Press ESC)
+4. Bat and Ball collisions
+5. Scoring system
+6. Power-ups!
