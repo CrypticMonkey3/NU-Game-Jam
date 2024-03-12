@@ -41,16 +41,20 @@ class SpriteManager:
 
 
 class CollisionManager:
-    def check_bat_ball(self, bat_pool: List[object], ball_pool: List[object]) -> None:
+    @staticmethod
+    def check_bat_ball(bat_pool: List[Any], ball_pool: List[Any]) -> None:
         """
         Checks the collisions between a bat pool and a ball pool.
-        :param List[object] bat_pool: a list of objects
-        :param List[object] ball_pool: a list of objects to compare against
+        :param List[Any] bat_pool: a list of Bat objects
+        :param List[Any] ball_pool: a list of Ball objects to compare against
         :return: None
         """
         # Can get accurate ball collisions by doing this:
+        collisions = [(bat_pool[ball.rect.collidelist(bat_pool)], ball) for ball in ball_pool if ball.rect.collidelist(bat_pool) != -1]
         # 1. Check if a ball and bat collide
-        #   a. If they do get the masks of those two overlapping
+        if collisions:
+            ...
+        #   a. If they do get the masks of those two overlapping, maybe instead of mask use clip
         #   b. Simulate the position of the ball in the next frame, and get the mask of this projection with the bat
         #   c. Compare the heights and widths of those overlapped mask
         #       i. If the width of the projected > than current: than -x direction.
