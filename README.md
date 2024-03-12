@@ -13,8 +13,6 @@ These activate only if the ball hits one when they fall down from the screen.
 - White Cat: More balls!
 
 ## To do
-1. Stop flickering
-2. Ball can move in any trajectory, rather than one at 45deg
-3. Add prompt to top left saying how to exit game (Press ESC)
+1. Ball can move in any trajectory, rather than only at 45deg
 4. Bat and Ball collisions
 5. Power-ups!

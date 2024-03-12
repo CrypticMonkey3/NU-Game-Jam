@@ -40,6 +40,24 @@ class SpriteManager:
         return cls.__instance
 
 
+class CollisionManager:
+    def check_bat_ball(self, bat_pool: List[object], ball_pool: List[object]) -> None:
+        """
+        Checks the collisions between a bat pool and a ball pool.
+        :param List[object] bat_pool: a list of objects
+        :param List[object] ball_pool: a list of objects to compare against
+        :return: None
+        """
+        # Can get accurate ball collisions by doing this:
+        # 1. Check if a ball and bat collide
+        #   a. If they do get the masks of those two overlapping
+        #   b. Simulate the position of the ball in the next frame, and get the mask of this projection with the bat
+        #   c. Compare the heights and widths of those overlapped mask
+        #       i. If the width of the projected > than current: than -x direction.
+        #       ii. If the height of the projected > than current: than -y direction.
+        ...
+
+
 class Text:
     def __init__(self, *args):
         self._surface: pygame.Surface = args[0]
@@ -76,7 +94,6 @@ class Text:
             mod_y + (self._surface.get_height() + self._pos[1] - self._font_surf.get_height() if self._pos[1] < 0 else self._pos[1])
         )
         self._surface.blit(self._font_surf, screen_pos)
-        pygame.display.update(Rect(screen_pos[0], screen_pos[1], self._font_surf.get_width(), self._font_surf.get_height()))
 
     @property
     def pos(self):
@@ -138,7 +155,6 @@ class Sprite:
         """
         # remove the previous positioned object from the screen
         self._surface.blit(self._filler_surf, self._rect)
-        pygame.display.update(self._rect)
 
         self._rect = Rect(  # changes the rect of the object, whilst ensuring it's in the screen
             max(0, min(self._rect[0] + x, self._surface.get_width() - self._rect.width)),
@@ -157,9 +173,6 @@ class Sprite:
         if outline and self._image_outline:
             self._surface.blit(self._filler_surf, self._rect)
             self._surface.blit(self._image_outline, self._rect)
-
-        # only updating a part of the screen for optimal performance.
-        pygame.display.update(self._rect)
 
     @property
     def surface(self):
@@ -237,6 +250,7 @@ class Game:
         self.__timer = datetime(2000, 1, 1, 0, 0, 0, 0)
         self.__countdown_values = ["3", "2", "1", "GO!", ""]
 
+        self.__collision_manager = CollisionManager()
         self.__sprite_manager = SpriteManager()
         self.__sprite_manager.add_objects("Cat", Cat, 1, self.__surface, ["Graphics/cat.png", ""], (0, 0))
 
@@ -249,8 +263,8 @@ class Game:
                                           ["Graphics/ball.png", "Graphics/ball_outline.png"],
                                           (0, 0))
 
-        # Text 0: FPS, Text 1: Reset Countdown, Text 2: Player1 Score, Text3: Player2 Score
-        self.__sprite_manager.add_objects("Text", Text, 4, self.__surface,
+        # Text 0: FPS, Text 1: Reset Countdown, Text 2: Player1 Score, Text3: Player2 Score, Text4: Exit Notice
+        self.__sprite_manager.add_objects("Text", Text, 5, self.__surface,
                                           "", "Fonts/Arcadepix.TTF", 16, (0, 0), (0, 0, 0))
         self.__sprite_manager.object_pool["Text"][0].pos = (-5, 5)
         self.__sprite_manager.object_pool["Text"][1].size = 256
@@ -259,6 +273,7 @@ class Game:
         self.__sprite_manager.object_pool["Text"][2].pos = ((self.__surface.get_width() // 4) - (self.__sprite_manager.object_pool["Text"][2].surface.get_width() // 2), 200)
         self.__sprite_manager.object_pool["Text"][3].size = 128
         self.__sprite_manager.object_pool["Text"][3].pos = (((self.__surface.get_width() // 4) * 3) - (self.__sprite_manager.object_pool["Text"][3].surface.get_width() // 2), 200)
+        self.__sprite_manager.object_pool["Text"][4].pos = (5, 5)
 
     def __countdown(self) -> None:
         """
@@ -332,6 +347,7 @@ class Game:
         self.__sprite_manager.object_pool["Text"][0].update_text(f"{FPS_CLOCK.get_fps():0.2f} FPS")  # update FPS
         self.__sprite_manager.object_pool["Text"][2].update_text(f"{self.__sprite_manager.object_pool['Player1'][0].score:02d}", True)  # update Player 1's score
         self.__sprite_manager.object_pool["Text"][3].update_text(f"{self.__sprite_manager.object_pool['Player2'][0].score:02d}", True)  # update Player 2's score
+        self.__sprite_manager.object_pool["Text"][4].update_text("Press (ESC) to EXIT")
 
         if self.__sprite_manager.object_pool["Text"][1].message:
             self.__countdown()
@@ -347,6 +363,8 @@ class Game:
 
             if player_scored != 0:
                 self.__sprite_manager.object_pool[f"Player{player_scored}"][0].score += 1
+                # Beep(551, 16)
+                Beep(600, 32)
                 self.__reset_game()
 
     def run(self) -> None:
@@ -356,11 +374,11 @@ class Game:
         """
         self.__surface.fill((255, 255, 255))
         self.__reset_game()
-        pygame.display.update()
 
         while self.__running:
             self.__process()
             FPS_CLOCK.tick(FPS)
+            pygame.display.update()
 
 
 if __name__ == "__main__":
