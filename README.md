@@ -17,5 +17,4 @@ These activate only if the ball hits one when they fall down from the screen.
 2. Ball can move in any trajectory, rather than one at 45deg
 3. Add prompt to top left saying how to exit game (Press ESC)
 4. Bat and Ball collisions
-5. Scoring system
-6. Power-ups!
+5. Power-ups!
