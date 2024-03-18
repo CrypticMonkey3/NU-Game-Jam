@@ -414,8 +414,6 @@ class Game:
                 Beep(600, 32)
                 self.__reset_game()
 
-
-
     def run(self) -> None:
         """
         Method to call, in order to run the game
