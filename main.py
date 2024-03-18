@@ -52,13 +52,21 @@ class CollisionManager:
         # get a list of bats and balls that have collided with each other
         collisions = [(bat_pool[ball.rect.collidelist(bat_pool)], ball) for ball in ball_pool if ball.rect.collidelist(bat_pool) != -1]
         for collision in collisions:  # iterate through each collision.
+            if collision[0].rect.colliderect(Rect(collision[1].prev_rect[0], collision[1].prev_rect[1] + collision[1].velocity[1], collision[1].prev_rect[2], collision[1].prev_rect[3])):
+                # moves the ball to either side of the bat depending on the direction, then moves the ball a suitable
+                # distance away from the top or bottom of the bat depending on the direction of the ball
+                inverse_y = -collision[1].direction[1] if collision[1].direction[1] != collision[0].direction[0] else collision[1].dsssasswisrection[1]
+                collision[1].move_pos(collision[0].rect.left - collision[1].rect.right if collision[1].direction[0] < 0 else collision[0].rect.right - collision[1].rect.left, (min((collision[0].rect.bottom - collision[1].rect.top), abs(collision[0].rect.top - collision[1].rect.bottom)) * inverse_y))
+                collision[1].direction = (collision[1].direction[0], inverse_y)
+
             # check if the previous rect of the ball with a modified x collides with the bat.
-            if collision[0].rect.colliderect(Rect(collision[1].prev_rect[0] + collision[1].velocity[0],
-                                                  collision[1].prev_rect[1],
-                                                  collision[1].prev_rect[2],
-                                                  collision[1].prev_rect[3])):
-                collision[1].direction = (-collision[1].direction[0], collision[1].direction[1])
-        ...
+            elif collision[0].rect.colliderect(Rect(collision[1].prev_rect[0] + collision[1].velocity[0], collision[1].prev_rect[1], collision[1].prev_rect[2], collision[1].prev_rect[3])):
+                # set ball position on the edge of the bat
+                collision[1].move_pos(collision[0].rect.right - collision[1].rect.left if collision[1].direction[0] < 0 else collision[0].rect.left - collision[1].rect.right, 0, False)
+                collision[1].direction = (-collision[1].direction[0], collision[1].direction[1])  # changes direction
+
+            Beep(551, 16)
+            collision[1].speed += 1
 
 
 class Text:
@@ -148,19 +156,23 @@ class Sprite:
         self._rect = Rect(args[2][0], args[2][1], self._image.get_width(), self._image.get_height())
         self._prev_rect = self._rect
         self._direction = (0, 0)
+        self._base_speed = 0
         self._speed = 0
 
-    def move_pos(self, x: int, y: int) -> None:
+    def move_pos(self, x: int, y: int, update_prev_rect: bool = True) -> None:
         """
         Moves the position of where the object is drawn on the screen
         :param int x: x modifier
         :param int y: y modifier
+        :param bool update_prev_rect: Whether we change the previous rect during a movement, only False for collisions.
         :return: None
         """
         # remove the previous positioned object from the screen
         self._surface.blit(self._filler_surf, self._rect)
 
-        self._prev_rect = self._rect
+        if update_prev_rect:
+            self._prev_rect = self._rect
+
         self._rect = Rect(  # changes the rect of the object, whilst ensuring it's in the screen
             max(0, min(self._rect[0] + x, self._surface.get_width() - self._rect.width)),
             max(0, min(self._rect[1] + y, self._surface.get_height() - self._rect.height)),
@@ -195,6 +207,18 @@ class Sprite:
         self._direction = new_direction
 
     @property
+    def base_speed(self):
+        return self._base_speed
+
+    @property
+    def speed(self):
+        return self._speed
+
+    @speed.setter
+    def speed(self, new_speed):
+        self._speed = new_speed
+
+    @property
     def rect(self):
         return self._rect
 
@@ -221,7 +245,8 @@ class Player(Sprite):
         self._filler_surf = pygame.transform.rotate(self._filler_surf, 90)
         self._rect = Rect(self._rect[0], self._rect[1], self._image.get_width(), self._image.get_height())
 
-        self._speed = 3
+        self._base_speed = 7
+        self._speed = 7
         self._direction = (0, 1)
         self.__score = 0
 
@@ -237,15 +262,16 @@ class Player(Sprite):
 class Ball(Sprite):
     def __init__(self, *args):
         super().__init__(*args)
+        self._base_speed = 3
         self._speed = 3
         self._direction = (choice([1, -1]), choice([1, -1]))
 
-    def move_pos(self, x: int, y: int) -> int:
+    def move_pos(self, x: int, y: int, update_prev_rect: bool = True) -> int:
         """
         The same functionality as in the parent class, but also checks if we hit screen boundaries.
         :return: int, which player has scored, 0 denoting that no one has scored yet.
         """
-        super(Ball, self).move_pos(x, y)
+        super(Ball, self).move_pos(x, y, update_prev_rect)
 
         if self._rect[1] == 0 or self._rect[1] == self._surface.get_height() - self._rect.height:
             self._direction = (self._direction[0], -self._direction[1])
@@ -326,6 +352,8 @@ class Game:
         self.__sprite_manager.object_pool["Player2"][0].draw(True)  # Player 2
         self.__sprite_manager.object_pool["Ball"][0].draw(True)  # Ball 1
 
+        self.__sprite_manager.object_pool["Ball"][0].speed = self.__sprite_manager.object_pool["Ball"][0].base_speed
+
         # --- kickstart the countdown
         self.__sprite_manager.object_pool["Text"][1].update_text("3", True)
         self.__timer = datetime.now()
@@ -378,9 +406,11 @@ class Game:
             player_scored = self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__sprite_manager.object_pool["Ball"][0].velocity[0], self.__sprite_manager.object_pool["Ball"][0].velocity[1])
             self.__sprite_manager.object_pool["Ball"][0].draw()  # Ball 1
 
+            self.__collision_manager.check_bat_ball(self.__sprite_manager.object_pool["Player1"], self.__sprite_manager.object_pool["Ball"])
+            self.__collision_manager.check_bat_ball(self.__sprite_manager.object_pool["Player2"], self.__sprite_manager.object_pool["Ball"])
+
             if player_scored != 0:
                 self.__sprite_manager.object_pool[f"Player{player_scored}"][0].score += 1
-                # Beep(551, 16)
                 Beep(600, 32)
                 self.__reset_game()
 
