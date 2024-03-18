@@ -49,16 +49,15 @@ class CollisionManager:
         :param List[Any] ball_pool: a list of Ball objects to compare against
         :return: None
         """
-        # Can get accurate ball collisions by doing this:
+        # get a list of bats and balls that have collided with each other
         collisions = [(bat_pool[ball.rect.collidelist(bat_pool)], ball) for ball in ball_pool if ball.rect.collidelist(bat_pool) != -1]
-        # 1. Check if a ball and bat collide
-        if collisions:
-            ...
-        #   a. If they do get the masks of those two overlapping, maybe instead of mask use clip
-        #   b. Simulate the position of the ball in the next frame, and get the mask of this projection with the bat
-        #   c. Compare the heights and widths of those overlapped mask
-        #       i. If the width of the projected > than current: than -x direction.
-        #       ii. If the height of the projected > than current: than -y direction.
+        for collision in collisions:  # iterate through each collision.
+            # check if the previous rect of the ball with a modified x collides with the bat.
+            if collision[0].rect.colliderect(Rect(collision[1].prev_rect[0] + collision[1].velocity[0],
+                                                  collision[1].prev_rect[1],
+                                                  collision[1].prev_rect[2],
+                                                  collision[1].prev_rect[3])):
+                collision[1].direction = (-collision[1].direction[0], collision[1].direction[1])
         ...
 
 
@@ -147,6 +146,7 @@ class Sprite:
             self._image_outline = pygame.image.load(args[1][1]).convert_alpha(args[0])
 
         self._rect = Rect(args[2][0], args[2][1], self._image.get_width(), self._image.get_height())
+        self._prev_rect = self._rect
         self._direction = (0, 0)
         self._speed = 0
 
@@ -160,6 +160,7 @@ class Sprite:
         # remove the previous positioned object from the screen
         self._surface.blit(self._filler_surf, self._rect)
 
+        self._prev_rect = self._rect
         self._rect = Rect(  # changes the rect of the object, whilst ensuring it's in the screen
             max(0, min(self._rect[0] + x, self._surface.get_width() - self._rect.width)),
             max(0, min(self._rect[1] + y, self._surface.get_height() - self._rect.height)),
@@ -186,8 +187,20 @@ class Sprite:
         return self._image
 
     @property
+    def direction(self):
+        return self._direction
+
+    @direction.setter
+    def direction(self, new_direction: Tuple[int, int]):
+        self._direction = new_direction
+
+    @property
     def rect(self):
         return self._rect
+
+    @property
+    def prev_rect(self):
+        return self._prev_rect
 
     @property
     def velocity(self):
