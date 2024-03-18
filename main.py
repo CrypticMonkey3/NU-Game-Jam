@@ -400,11 +400,11 @@ class Game:
         elif not self.__sprite_manager.object_pool["Text"][1].message:  # else if not counting down, run the game
             self.__check_inputs()
 
+            player_scored = self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__sprite_manager.object_pool["Ball"][0].velocity[0], self.__sprite_manager.object_pool["Ball"][0].velocity[1])
+
+            self.__sprite_manager.object_pool["Ball"][0].draw()  # Ball 1
             self.__sprite_manager.object_pool["Player1"][0].draw()  # Player 1
             self.__sprite_manager.object_pool["Player2"][0].draw()  # Player 2
-
-            player_scored = self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__sprite_manager.object_pool["Ball"][0].velocity[0], self.__sprite_manager.object_pool["Ball"][0].velocity[1])
-            self.__sprite_manager.object_pool["Ball"][0].draw()  # Ball 1
 
             self.__collision_manager.check_bat_ball(self.__sprite_manager.object_pool["Player1"], self.__sprite_manager.object_pool["Ball"])
             self.__collision_manager.check_bat_ball(self.__sprite_manager.object_pool["Player2"], self.__sprite_manager.object_pool["Ball"])
@@ -413,6 +413,8 @@ class Game:
                 self.__sprite_manager.object_pool[f"Player{player_scored}"][0].score += 1
                 Beep(600, 32)
                 self.__reset_game()
+
+
 
     def run(self) -> None:
         """
