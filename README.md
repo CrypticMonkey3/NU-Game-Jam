@@ -14,5 +14,4 @@ These activate only if the ball hits one when they fall down from the screen.
 
 ## To do
 1. Ball can move in any trajectory, rather than only at 45deg
-4. Bat and Ball collisions
 5. Power-ups!
