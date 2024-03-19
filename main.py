@@ -68,6 +68,10 @@ class CollisionManager:
             Beep(551, 16)
             collision[1].speed += 1
 
+    @staticmethod
+    def check_ball_cat(ball_pool: List[Any], cat_pool: List[Any]):
+        ...
+
 
 class Text:
     def __init__(self, *args):
@@ -147,7 +151,6 @@ class Sprite:
         self._image: pygame.Surface = pygame.image.load(args[1][0]).convert_alpha(args[0])
         self._filler_surf = self._image.copy()
         self._filler_surf.fill(WHITE)
-        self._start_pos: Tuple[int, int] = args[2]
 
         self._image_outline = args[1][1]
         if args[1][1]:
@@ -235,6 +238,29 @@ class Cat(Sprite):
     def __init__(self, *args):
         super().__init__(*args)
 
+    def disappear_move(self, x: int, y: int) -> None:
+        """
+        Slowly shrinks the image from the screen, then moves the position elsewhere and reappears.
+        :param int x: x-coordinate
+        :param int y: y-coordinate
+        :return: None
+        """
+
+    def appear(self) -> None:
+        """
+        Slowly enlarge the image to a particular size.
+        :return: None
+        """
+        ...
+
+    def rotate(self, degrees: int) -> None:
+        """
+        Rotate a cat by a certain amount of degrees.
+        :param int degrees: The amount of degrees to rotate object.
+        :return: None
+        """
+        ...
+
 
 class Player(Sprite):
     def __init__(self, *args):
@@ -295,7 +321,7 @@ class Game:
 
         self.__collision_manager = CollisionManager()
         self.__sprite_manager = SpriteManager()
-        self.__sprite_manager.add_objects("Cat", Cat, 1, self.__surface, ["Graphics/cat.png", ""], (0, 0))
+        self.__sprite_manager.add_objects("White Cat", Cat, 5, self.__surface, ["Graphics/cat.png", ""], (0, 0))
 
         for i in range(1, 3):  # repeats for stop - start number of players
             self.__sprite_manager.add_objects(f"Player{i}", Player, 1, self.__surface,
@@ -360,6 +386,16 @@ class Game:
 
         self.__sprite_manager.object_pool["Text"][2].color = FADED_BLACK
         self.__sprite_manager.object_pool["Text"][3].color = FADED_BLACK
+
+    def __spawn_cats(self) -> None:
+        """
+        Randomly places a cat on a particular area of the screen.
+        :return: None
+        """
+        # every 6 amount of seconds
+        if (datetime.now() - self.__timer).total_seconds() > 6:
+            # randomly choose a cat of varying probability, and make it appear at a random point on the screen.
+            ...
 
     def __check_events(self) -> None:
         """
