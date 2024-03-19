@@ -3,7 +3,7 @@ from pygame.font import Font
 from typing import *
 import pygame
 from datetime import datetime
-from random import choice
+from random import choice, randrange
 from winsound import Beep
 
 pygame.init()
@@ -167,7 +167,7 @@ class Sprite:
         Moves the position of where the object is drawn on the screen
         :param int x: x modifier
         :param int y: y modifier
-        :param bool update_prev_rect: Whether we change the previous rect during a movement, only False for collisions.
+        :param bool update_prev_rect: Whether we change the previous rect during a movement.
         :return: None
         """
         # remove the previous positioned object from the screen
@@ -237,29 +237,55 @@ class Sprite:
 class Cat(Sprite):
     def __init__(self, *args):
         super().__init__(*args)
+        self.__queued_action = None
+        self.__original_dim = self._image.get_size()
+        self._image = pygame.transform.scale(self._image, (self._image.get_width() // 4, self._image.get_height() // 4))
+        self._rect = Rect(randrange(100, self._surface.get_width() - 100),
+                          randrange(0, self._surface.get_height() - self._image.get_height()),
+                          self._image.get_width(),
+                          self._image.get_height())
 
-    def disappear_move(self, x: int, y: int) -> None:
+    def disappear(self) -> None:
         """
-        Slowly shrinks the image from the screen, then moves the position elsewhere and reappears.
-        :param int x: x-coordinate
-        :param int y: y-coordinate
+        Slowly shrinks the image from the screen at a position.
         :return: None
         """
+        self._image = pygame.transform.scale(self._image, (max(self._image.get_width() - 1, self.__original_dim[0] // 4), max(self._image.get_height() - 1, self.__original_dim[1] // 4)))
+        self.move_pos(1, 1, False)
+        self.draw()
 
     def appear(self) -> None:
         """
-        Slowly enlarge the image to a particular size.
-        :return: None
+        Slowly enlarge the image to the image's original size.
+        :return: bool, whether the image has finished appearing/enlarging or not.
         """
-        ...
+        self._image = pygame.transform.scale(self._image, (min(self._image.get_width() + 1, self.__original_dim[0]), min(self._image.get_height() + 1, self.__original_dim[1])))
+        self.move_pos(-1, -1, False)
+        self.draw()
 
-    def rotate(self, degrees: int) -> None:
+        if self.__original_dim == self._image.get_size():
+            self.__queued_action = self.rotate
+
+    def rotate(self, degrees: int = 1) -> None:
         """
         Rotate a cat by a certain amount of degrees.
         :param int degrees: The amount of degrees to rotate object.
         :return: None
         """
-        ...
+        self._image = pygame.transform.rotate(self._image, degrees)
+
+    def activate(self):
+        """
+        Makes the cat power-up active, which means that it will begin to appear on the screen. However, if it's already
+        active/on the screen, then it will need to disappear.
+        """
+        self.__queued_action = self.disappear if self.__queued_action is not None else self.appear
+        self.move_pos(randrange(100, self._surface.get_width() - 100) - self._rect[0],
+                      randrange(0, self._surface.get_height() - self._image.get_height()) - self._rect[1])
+
+    @property
+    def queued_action(self):
+        return self.__queued_action
 
 
 class Player(Sprite):
@@ -393,9 +419,19 @@ class Game:
         :return: None
         """
         # every 6 amount of seconds
-        if (datetime.now() - self.__timer).total_seconds() > 6:
+        if (datetime.now() - self.__timer).total_seconds() > 3:
             # randomly choose a cat of varying probability, and make it appear at a random point on the screen.
-            ...
+            cat_type = choice(['White'])
+            self.__sprite_manager.object_pool[f"{cat_type} Cat"][randrange(0, len(self.__sprite_manager.object_pool[f"{cat_type} Cat"]))].activate()
+            self.__timer = datetime.now()
+
+    def __check_cats(self) -> None:
+        """
+        Checks whether any actions need performing from a cat object.
+        :return: None
+        """
+        for active_cat in filter(lambda x: x.queued_action is not None, self.__sprite_manager.object_pool["White Cat"]):
+            active_cat.queued_action()
 
     def __check_events(self) -> None:
         """
@@ -437,6 +473,9 @@ class Game:
             self.__check_inputs()
 
             player_scored = self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__sprite_manager.object_pool["Ball"][0].velocity[0], self.__sprite_manager.object_pool["Ball"][0].velocity[1])
+
+            self.__spawn_cats()
+            self.__check_cats()
 
             self.__sprite_manager.object_pool["Ball"][0].draw()  # Ball 1
             self.__sprite_manager.object_pool["Player1"][0].draw()  # Player 1
