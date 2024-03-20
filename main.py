@@ -5,6 +5,7 @@ import pygame
 from datetime import datetime
 from random import choice, randrange
 from winsound import Beep
+from inspect import signature
 
 pygame.init()
 FPS_CLOCK = pygame.time.Clock()
@@ -237,36 +238,36 @@ class Sprite:
 class Cat(Sprite):
     def __init__(self, *args):
         super().__init__(*args)
-        self.__queued_action = None
-        self.__original_dim = self._image.get_size()
-        self._image = pygame.transform.scale(self._image, (self._image.get_width() // 4, self._image.get_height() // 4))
+        self.__queued_action = ()
+        self.__scale_size = (self._image.get_width() - 13, self._image.get_height() - 13)
         self._rect = Rect(randrange(100, self._surface.get_width() - 100),
                           randrange(0, self._surface.get_height() - self._image.get_height()),
-                          self._image.get_width(),
-                          self._image.get_height())
+                          self._rect[2], self._rect[3])
+        self.__internal_timer = datetime.now()
 
-    def disappear(self) -> None:
+    def enlarge(self, mod_scale_x: int, mod_scale_y: int, scale_limit: Tuple[int, int]) -> None:
         """
-        Slowly shrinks the image from the screen at a position.
-        :return: None
-        """
-        self._image = pygame.transform.scale(self._image, (max(self._image.get_width() - 1, self.__original_dim[0] // 4), max(self._image.get_height() - 1, self.__original_dim[1] // 4)))
-        self.move_pos(1, 1, False)
-        self.draw()
-
-    def appear(self) -> None:
-        """
-        Slowly enlarge the image to the image's original size.
+        Slowly enlarges or shrinks the image.
+        :param int mod_scale_x: How much to change the scale size, in the x-direction, by.
+        :param int mod_scale_y: How much to change the scale size, in the y-direction, by.
+        :param Tuple[int, int] scale_limit: The point at which the sprite cannot enlarge or shrink any further.
         :return: bool, whether the image has finished appearing/enlarging or not.
         """
-        self._image = pygame.transform.scale(self._image, (min(self._image.get_width() + 1, self.__original_dim[0]), min(self._image.get_height() + 1, self.__original_dim[1])))
-        self.move_pos(-1, -1, False)
-        self.draw()
+        if (datetime.now() - self.__internal_timer).total_seconds() > 1:
+            self.__scale_size = (self.__scale_size[0] + mod_scale_x, self.__scale_size[1] + mod_scale_y)
+            self.move_pos(-mod_scale_x, -mod_scale_y, False)
+            self._surface.blit(pygame.transform.scale(self._image, self.__scale_size), self._rect)
 
-        if self.__original_dim == self._image.get_size():
-            self.__queued_action = self.rotate
+            if self.__scale_size == scale_limit:
+                self.__queued_action = self.queued_action[4:]
 
-    def rotate(self, degrees: int = 1) -> None:
+                if mod_scale_x < 0:  # if the sprite was shrinking, then reposition the sprite once disappeared
+                    self.move_pos(randrange(100, self._surface.get_width() - 100) - self._rect[0],
+                                  randrange(0, self._surface.get_height() - self._image.get_height()) - self._rect[1])
+
+            self.__internal_timer = datetime.now()
+
+    def rotate(self, degrees: int = 90) -> None:
         """
         Rotate a cat by a certain amount of degrees.
         :param int degrees: The amount of degrees to rotate object.
@@ -274,14 +275,18 @@ class Cat(Sprite):
         """
         self._image = pygame.transform.rotate(self._image, degrees)
 
+        # change the filler surface here
+        # need to keep track of how many degrees that has been rotated, so rotations can be reset
+
+        self.move_pos(0, 0)  # changes the rect, and prepares the screen for a redraw
+        self._surface.blit(self._image, self._rect)
+
     def activate(self):
         """
         Makes the cat power-up active, which means that it will begin to appear on the screen. However, if it's already
         active/on the screen, then it will need to disappear.
         """
-        self.__queued_action = self.disappear if self.__queued_action is not None else self.appear
-        self.move_pos(randrange(100, self._surface.get_width() - 100) - self._rect[0],
-                      randrange(0, self._surface.get_height() - self._image.get_height()) - self._rect[1])
+        self.__queued_action = (self.enlarge, -1, -1, (self._image.get_width() - 13, self._image.get_height() - 13), self.enlarge, 1, 1, self._image.get_size(), self.rotate) if self.__queued_action else (self.enlarge, 1, 1, self._image.get_size(), self.rotate)
 
     @property
     def queued_action(self):
@@ -405,6 +410,7 @@ class Game:
         self.__sprite_manager.object_pool["Ball"][0].draw(True)  # Ball 1
 
         self.__sprite_manager.object_pool["Ball"][0].speed = self.__sprite_manager.object_pool["Ball"][0].base_speed
+        self.__sprite_manager.object_pool["Ball"][0].direction = (choice([1, -1]), choice([1, -1]))
 
         # --- kickstart the countdown
         self.__sprite_manager.object_pool["Text"][1].update_text("3", True)
@@ -431,7 +437,13 @@ class Game:
         :return: None
         """
         for active_cat in filter(lambda x: x.queued_action is not None, self.__sprite_manager.object_pool["White Cat"]):
-            active_cat.queued_action()
+            # checks whether the type of function queued, if any, and if it has more than 1 parameter we know to enlarge
+            if active_cat.queued_action and len(str(signature(active_cat.queued_action[0]))[1:-1].split(", ")) > 1:
+                active_cat.queued_action[0](active_cat.queued_action[1], active_cat.queued_action[2], active_cat.queued_action[3])
+
+            # otherwise, if there's a function queued, then it's only the rotate method left.
+            elif active_cat.queued_action:
+                active_cat.queued_action[0]()
 
     def __check_events(self) -> None:
         """
