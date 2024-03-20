@@ -56,7 +56,7 @@ class CollisionManager:
             if collision[0].rect.colliderect(Rect(collision[1].prev_rect[0], collision[1].prev_rect[1] + collision[1].velocity[1], collision[1].prev_rect[2], collision[1].prev_rect[3])):
                 # moves the ball to either side of the bat depending on the direction, then moves the ball a suitable
                 # distance away from the top or bottom of the bat depending on the direction of the ball
-                inverse_y = -collision[1].direction[1] if collision[1].direction[1] != collision[0].direction[0] else collision[1].dsssasswisrection[1]
+                inverse_y = -collision[1].direction[1] if collision[1].direction[1] != collision[0].direction[0] else collision[1].direction[1]
                 collision[1].move_pos(collision[0].rect.left - collision[1].rect.right if collision[1].direction[0] < 0 else collision[0].rect.right - collision[1].rect.left, (min((collision[0].rect.bottom - collision[1].rect.top), abs(collision[0].rect.top - collision[1].rect.bottom)) * inverse_y))
                 collision[1].direction = (collision[1].direction[0], inverse_y)
 
