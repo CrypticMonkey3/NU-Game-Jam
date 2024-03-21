@@ -221,6 +221,10 @@ class Sprite:
         return self._image
 
     @property
+    def filler_surface(self):
+        return self._filler_surf
+
+    @property
     def direction(self):
         return self._direction
 
@@ -319,9 +323,29 @@ class Cat(Sprite):
     def queued_action(self):
         return self.__queued_action
 
+    @queued_action.setter
+    def queued_action(self, new_queue):
+        self.__queued_action = new_queue
+
     @property
     def cat_type(self) -> str:
         return self.__cat_type
+
+    @property
+    def rotation(self):
+        return self.__rotation
+
+    @rotation.setter
+    def rotation(self, new_rotation):
+        self.__rotation = new_rotation
+
+    @property
+    def scale_size(self):
+        return self.__scale_size
+
+    @scale_size.setter
+    def scale_size(self, new_scale):
+        self.__scale_size = new_scale
 
 
 class Player(Sprite):
@@ -443,6 +467,14 @@ class Game:
         self.__sprite_manager.object_pool["Player2"][0].draw(True)  # Player 2
         self.__sprite_manager.object_pool["Ball"][0].draw(True)  # Ball 1
 
+        # resets all cats that are either enlarging or shrinking, or have a different rotation
+        cats_onscreen = filter(lambda x: x.scale_size != (x.surface.get_width() - 13, x.surface.get_height() - 13) or x.rotation % 360 != 0, itertools.chain.from_iterable([self.__sprite_manager.object_pool[f"{cat_type} Cat"] for cat_type in CAT_TYPES]))
+        for cat in cats_onscreen:
+            cat.scale_size = (cat.surface.get_width() - 13, cat.surface.get_height() - 13)
+            cat.queued_action = ()
+            cat.rotation = 0
+            self.__surface.blit(cat.filler_surface, cat.rect)
+
         self.__sprite_manager.object_pool["Ball"][0].speed = self.__sprite_manager.object_pool["Ball"][0].base_speed
         self.__sprite_manager.object_pool["Ball"][0].direction = (choice([1, -1]), choice([1, -1]))
 
@@ -458,8 +490,7 @@ class Game:
         Randomly places a cat on a particular area of the screen.
         :return: None
         """
-        # every 2.5 amount of seconds
-        if (datetime.now() - self.__timer).total_seconds() > 2.5:
+        if (datetime.now() - self.__timer).total_seconds() > 2.5:  # every 2.5 amount of seconds
             # randomly choose a cat of varying probability, and make it appear at a random point on the screen.
             cat_type = choice((['White'] * 35) + (["Red"] * 20) + (["Green"] * 20) + (["Blue"] * 20) + (["Black"] * 5))
             self.__sprite_manager.object_pool[f"{cat_type} Cat"][randrange(0, len(self.__sprite_manager.object_pool[f"{cat_type} Cat"]))].activate()
