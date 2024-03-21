@@ -254,7 +254,7 @@ class Cat(Sprite):
         :param Tuple[int, int] scale_limit: The point at which the sprite cannot enlarge or shrink any further.
         :return: bool, whether the image has finished appearing/enlarging or not.
         """
-        if (datetime.now() - self.__internal_timer).total_seconds() > 1:
+        if (datetime.now() - self.__internal_timer).total_seconds() > 1 and self.__rotation % 360 == 0:
             self.__scale_size = (max(self.__scale_size[0] + mod_scale_x, self._image.get_width() - 13), max(self.__scale_size[1] + mod_scale_y, self._image.get_height() - 13))
             self.move_pos(-mod_scale_x, -mod_scale_y, False)
             self._surface.blit(pygame.transform.scale(self._image, self.__scale_size), self._rect)
@@ -267,6 +267,9 @@ class Cat(Sprite):
                                   randrange(0, self._surface.get_height() - self._image.get_height()) - self._rect[1])
 
             self.__internal_timer = datetime.now()
+
+        elif self.__rotation % 360 != 0:
+            self.rotate()
 
     def rotate(self, degrees: int = 1) -> None:
         """
@@ -289,7 +292,9 @@ class Cat(Sprite):
         Makes the cat power-up active, which means that it will begin to appear on the screen. However, if it's already
         active/on the screen, then it will need to disappear.
         """
-        self.__queued_action = (self.enlarge, -1, -1, (self._image.get_width() - 13, self._image.get_height() - 13), self.enlarge, 1, 1, self._image.get_size(), self.rotate) if self.__queued_action else (self.enlarge, 1, 1, self._image.get_size(), self.rotate)
+        # condition prevents cat from shrinking when enlarging, whilst ensuring that cat can shrink when enlarged
+        if self.__scale_size == self._image.get_size() or self.__scale_size == (self._image.get_width() - 13, self._image.get_height() - 13):
+            self.__queued_action = (self.enlarge, -1, -1, (self._image.get_width() - 13, self._image.get_height() - 13), self.enlarge, 1, 1, self._image.get_size(), self.rotate) if self.__queued_action else (self.enlarge, 1, 1, self._image.get_size(), self.rotate)
 
     @property
     def queued_action(self):

@@ -19,4 +19,5 @@ These activate only if the ball hits one when they fall down from the screen.
    3. Implement a solution for activating their abilities
    4. Repeat for other cats
 2. Ball can move in any trajectory, rather than only at 45deg
-3. Screen is a set size, rather than full-screen.
+3. Make filler surf have a transparent effect instead of WHITE.
+4. Screen is a set size, rather than full-screen.
