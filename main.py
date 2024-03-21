@@ -244,6 +244,7 @@ class Cat(Sprite):
                           randrange(0, self._surface.get_height() - self._image.get_height()),
                           self._rect[2], self._rect[3])
         self.__internal_timer = datetime.now()
+        self.__rotation = 0
 
     def enlarge(self, mod_scale_x: int, mod_scale_y: int, scale_limit: Tuple[int, int]) -> None:
         """
@@ -254,7 +255,7 @@ class Cat(Sprite):
         :return: bool, whether the image has finished appearing/enlarging or not.
         """
         if (datetime.now() - self.__internal_timer).total_seconds() > 1:
-            self.__scale_size = (self.__scale_size[0] + mod_scale_x, self.__scale_size[1] + mod_scale_y)
+            self.__scale_size = (max(self.__scale_size[0] + mod_scale_x, self._image.get_width() - 13), max(self.__scale_size[1] + mod_scale_y, self._image.get_height() - 13))
             self.move_pos(-mod_scale_x, -mod_scale_y, False)
             self._surface.blit(pygame.transform.scale(self._image, self.__scale_size), self._rect)
 
@@ -267,19 +268,21 @@ class Cat(Sprite):
 
             self.__internal_timer = datetime.now()
 
-    def rotate(self, degrees: int = 90) -> None:
+    def rotate(self, degrees: int = 1) -> None:
         """
         Rotate a cat by a certain amount of degrees.
         :param int degrees: The amount of degrees to rotate object.
         :return: None
         """
-        self._image = pygame.transform.rotate(self._image, degrees)
+        self.__rotation += degrees
 
-        # change the filler surface here
-        # need to keep track of how many degrees that has been rotated, so rotations can be reset
+        rotated_image = pygame.transform.rotate(self._image, self.__rotation)
+        self._filler_surf = rotated_image.copy()
+        self._filler_surf.fill(WHITE)
+        self._rect = Rect(self._rect.left, self._rect.top, rotated_image.get_width(), rotated_image.get_height())
 
-        self.move_pos(0, 0)  # changes the rect, and prepares the screen for a redraw
-        self._surface.blit(self._image, self._rect)
+        self._surface.blit(self._filler_surf, self._rect)
+        self._surface.blit(rotated_image, self._rect)
 
     def activate(self):
         """
