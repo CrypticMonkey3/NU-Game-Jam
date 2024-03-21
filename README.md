@@ -12,6 +12,10 @@ These activate only if the ball hits one when they fall down from the screen.
 - Black Cat: Allows the player to move the bat horizontally with increased speed and batting power.
 - White Cat: More balls!
 
+## Requirements
+> - pygame >= 2.5.2 
+> - Python >= 3.10
+
 ## To do
 1. Power-ups!
    1. Work on making white cats appear on screen
