@@ -6,7 +6,7 @@ The game may look like your average pong game but with some purr-fect power-ups 
 ## Power-ups
 These activate only if the ball hits one when they fall down from the screen.
 
-- Red Cat: Gives your bat an extra kick in its next hit.
+- Red Cat: Increases the speed of the ball
 - Blue Cat: Gives your bat more speed
 - Green Cat: Makes your bat longer
 - Black Cat: Allows the player to move the bat horizontally with increased speed and batting power.

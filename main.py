@@ -72,24 +72,34 @@ class CollisionManager:
             collision[1].speed += 1
 
     @staticmethod
-    def check_ball_cat(ball_pool: List[Any], cat_pool: List[Any]):
-        collisions = [cat_pool[ball.rect.collidelist(cat_pool)] for ball in ball_pool if ball.rect.collidelist(cat_pool) != -1]
+    def check_ball_cat(ball_pool: List[Any], cat_pool: List[Any], bat_pool: List[Any] = None) -> None:
+        """
+        Checks the collisions between all the balls and all the cats on the screen.
+        :param List[Any] ball_pool: A list of Ball objects
+        :param List[Any] cat_pool: A list of Cat objects
+        :param List[Any] bat_pool: A list of bat objects
+        :return: None
+        """
+        collisions = [(cat_pool[ball.rect.collidelist(cat_pool)], ball) for ball in ball_pool if ball.rect.collidelist(cat_pool) != -1 and cat_pool[ball.rect.collidelist(cat_pool)].rotation % 360 != 0]
         for collision in collisions:
-            match collision.cat_type:
+            match collision[0].cat_type:
                 case "White Cat":
-                    return
+                    for inactive_ball in list(filter(lambda x: x.direction == (0, 0), ball_pool))[:2]:
+                        inactive_ball.direction = (choice([-1, 1]), choice([-1, 1]))
 
                 case "Red Cat":
-                    raise NotImplementedError
+                    print("\033[31mRed Cat hit\033[0m")
 
                 case "Blue Cat":
-                    raise NotImplementedError
+                    print("\033[31mBlue Cat hit\033[0m")
 
                 case "Green Cat":
-                    raise NotImplementedError
+                    print("\033[31mGreen Cat hit\033[0m")
 
                 case "Black Cat":
-                    raise NotImplementedError
+                    print("\033[31mBlack Cat hit\033[0m")
+
+            collision[0].reset()
 
 
 class Text:
@@ -221,10 +231,6 @@ class Sprite:
         return self._image
 
     @property
-    def filler_surface(self):
-        return self._filler_surf
-
-    @property
     def direction(self):
         return self._direction
 
@@ -277,7 +283,7 @@ class Cat(Sprite):
         :param Tuple[int, int] scale_limit: The point at which the sprite cannot enlarge or shrink any further.
         :return: bool, whether the image has finished appearing/enlarging or not.
         """
-        if (datetime.now() - self.__internal_timer).total_seconds() > 0.1 and self.__rotation % 360 == 0:
+        if (datetime.now() - self.__internal_timer).total_seconds() > 0.05 and self.__rotation % 360 == 0:
             self.__scale_size = (max(self.__scale_size[0] + mod_scale_x, self._image.get_width() - 13), max(self.__scale_size[1] + mod_scale_y, self._image.get_height() - 13))
             self.move_pos(-mod_scale_x, -mod_scale_y, False)
             self._surface.blit(pygame.transform.scale(self._image, self.__scale_size), self._rect)
@@ -318,6 +324,16 @@ class Cat(Sprite):
         # condition prevents cat from shrinking when enlarging, whilst ensuring that cat can shrink when enlarged
         if self.__scale_size == self._image.get_size() or self.__scale_size == (self._image.get_width() - 13, self._image.get_height() - 13):
             self.__queued_action = (self.enlarge, -1, -1, (self._image.get_width() - 13, self._image.get_height() - 13), self.enlarge, 1, 1, self._image.get_size(), self.rotate) if self.__queued_action else (self.enlarge, 1, 1, self._image.get_size(), self.rotate)
+
+    def reset(self) -> None:
+        """
+        Resets relevant cat attributes in order for re-use.
+        :return: None
+        """
+        self.__scale_size = (self._image.get_width() - 13, self._image.get_height() - 13)
+        self.__queued_action = ()
+        self.__rotation = 0
+        self._surface.blit(self._filler_surf, self._rect)
 
     @property
     def queued_action(self):
@@ -376,7 +392,6 @@ class Ball(Sprite):
         super().__init__(*args)
         self._base_speed = 3
         self._speed = 3
-        self._direction = (choice([1, -1]), choice([1, -1]))
 
     def move_pos(self, x: int, y: int, update_prev_rect: bool = True) -> int:
         """
@@ -468,12 +483,9 @@ class Game:
         self.__sprite_manager.object_pool["Ball"][0].draw(True)  # Ball 1
 
         # resets all cats that are either enlarging or shrinking, or have a different rotation
-        cats_onscreen = filter(lambda x: x.scale_size != (x.surface.get_width() - 13, x.surface.get_height() - 13) or x.rotation % 360 != 0, itertools.chain.from_iterable([self.__sprite_manager.object_pool[f"{cat_type} Cat"] for cat_type in CAT_TYPES]))
+        cats_onscreen = filter(lambda x: x.scale_size != (x.surface.get_width() - 13, x.surface.get_height() - 13), self.__get_cats())
         for cat in cats_onscreen:
-            cat.scale_size = (cat.surface.get_width() - 13, cat.surface.get_height() - 13)
-            cat.queued_action = ()
-            cat.rotation = 0
-            self.__surface.blit(cat.filler_surface, cat.rect)
+            cat.reset()
 
         self.__sprite_manager.object_pool["Ball"][0].speed = self.__sprite_manager.object_pool["Ball"][0].base_speed
         self.__sprite_manager.object_pool["Ball"][0].direction = (choice([1, -1]), choice([1, -1]))
@@ -501,7 +513,7 @@ class Game:
         Checks whether any actions need performing from a cat object.
         :return: None
         """
-        for active_cat in filter(lambda x: x.queued_action is not None, itertools.chain.from_iterable([self.__sprite_manager.object_pool[f"{cat_type} Cat"] for cat_type in CAT_TYPES])):
+        for active_cat in filter(lambda x: x.queued_action is not None, self.__get_cats()):
             # checks whether the type of function queued, if any, and if it has more than 1 parameter we know to enlarge
             if active_cat.queued_action and len(str(signature(active_cat.queued_action[0]))[1:-1].split(", ")) > 1:
                 active_cat.queued_action[0](active_cat.queued_action[1], active_cat.queued_action[2], active_cat.queued_action[3])
@@ -549,7 +561,8 @@ class Game:
         elif not self.__sprite_manager.object_pool["Text"][1].message:  # else if not counting down, run the game
             self.__check_inputs()
 
-            player_scored = self.__sprite_manager.object_pool["Ball"][0].move_pos(self.__sprite_manager.object_pool["Ball"][0].velocity[0], self.__sprite_manager.object_pool["Ball"][0].velocity[1])
+            # move all balls that have don't have a direction of (0, 0)
+            player_scores = [active_ball.move_pos(active_ball.velocity[0], active_ball.velocity[1]) for active_ball in filter(lambda x: x.direction != (0, 0), self.__sprite_manager.object_pool["Ball"])]
 
             self.__spawn_cats()
             self.__check_cats()
@@ -560,11 +573,20 @@ class Game:
 
             self.__collision_manager.check_bat_ball(self.__sprite_manager.object_pool["Player1"], self.__sprite_manager.object_pool["Ball"])
             self.__collision_manager.check_bat_ball(self.__sprite_manager.object_pool["Player2"], self.__sprite_manager.object_pool["Ball"])
+            self.__collision_manager.check_ball_cat(self.__sprite_manager.object_pool["Ball"], list(self.__get_cats()), None)
 
-            if player_scored != 0:
-                self.__sprite_manager.object_pool[f"Player{player_scored}"][0].score += 1
+            if list(filter(lambda x: x != 0, player_scores)):
+                self.__sprite_manager.object_pool["Player1"][0].score += player_scores.count(1)
+                self.__sprite_manager.object_pool["Player2"][0].score += player_scores.count(2)
                 Beep(600, 32)
                 self.__reset_game()
+
+    def __get_cats(self) -> Iterator:
+        """
+        Gets a list containing all cat objects of varying types.
+        :return: Iterator
+        """
+        return itertools.chain.from_iterable([self.__sprite_manager.object_pool[f"{cat_type} Cat"] for cat_type in CAT_TYPES])
 
     def run(self) -> None:
         """
