@@ -86,6 +86,7 @@ class CollisionManager:
                 case "White Cat":
                     for inactive_ball in list(filter(lambda x: x.direction == (0, 0), ball_pool))[:2]:
                         inactive_ball.direction = (choice([-1, 1]), choice([-1, 1]))
+                        inactive_ball.move_pos(collision[1].rect.left, collision[1].rect.top)
 
                 case "Red Cat":
                     print("\033[31mRed Cat hit\033[0m")
@@ -561,8 +562,8 @@ class Game:
         elif not self.__sprite_manager.object_pool["Text"][1].message:  # else if not counting down, run the game
             self.__check_inputs()
 
-            # move all balls that have don't have a direction of (0, 0)
-            player_scores = [active_ball.move_pos(active_ball.velocity[0], active_ball.velocity[1]) for active_ball in filter(lambda x: x.direction != (0, 0), self.__sprite_manager.object_pool["Ball"])]
+            # move all balls that have don't have a direction of (0, 0), GOT TO DRAW THEM AS WELL
+            player_scores = list(filter(lambda x: x != 0, [active_ball.move_pos(active_ball.velocity[0], active_ball.velocity[1]) for active_ball in filter(lambda x: x.direction != (0, 0), self.__sprite_manager.object_pool["Ball"])]))
 
             self.__spawn_cats()
             self.__check_cats()
@@ -575,10 +576,12 @@ class Game:
             self.__collision_manager.check_bat_ball(self.__sprite_manager.object_pool["Player2"], self.__sprite_manager.object_pool["Ball"])
             self.__collision_manager.check_ball_cat(self.__sprite_manager.object_pool["Ball"], list(self.__get_cats()), None)
 
-            if list(filter(lambda x: x != 0, player_scores)):
+            if player_scores:
                 self.__sprite_manager.object_pool["Player1"][0].score += player_scores.count(1)
                 self.__sprite_manager.object_pool["Player2"][0].score += player_scores.count(2)
                 Beep(600, 32)
+
+            if len(player_scores) == 1:
                 self.__reset_game()
 
     def __get_cats(self) -> Iterator:
