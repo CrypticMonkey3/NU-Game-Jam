@@ -9,7 +9,7 @@ These activate only if the ball hits one when they fall down from the screen.
 - Red Cat: Gives your bat an extra kick in its next hit.
 - Blue Cat: Gives your bat more speed
 - Green Cat: Makes your bat longer
-- Black Cat: Creates another bat the player can switch to
+- Black Cat: Allows the player to move the bat horizontally with increased speed and batting power.
 - White Cat: More balls!
 
 ## To do

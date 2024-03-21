@@ -6,12 +6,14 @@ from datetime import datetime
 from random import choice, randrange
 from winsound import Beep
 from inspect import signature
+import itertools
 
 pygame.init()
 FPS_CLOCK = pygame.time.Clock()
 FPS = 60
 WHITE = (255, 255, 255)
 FADED_BLACK = (184, 184, 184)
+CAT_TYPES = ["Red", "Blue", "Green", "White", "Black"]
 
 
 class SpriteManager:
@@ -71,7 +73,23 @@ class CollisionManager:
 
     @staticmethod
     def check_ball_cat(ball_pool: List[Any], cat_pool: List[Any]):
-        ...
+        collisions = [cat_pool[ball.rect.collidelist(cat_pool)] for ball in ball_pool if ball.rect.collidelist(cat_pool) != -1]
+        for collision in collisions:
+            match collision.cat_type:
+                case "White Cat":
+                    return
+
+                case "Red Cat":
+                    raise NotImplementedError
+
+                case "Blue Cat":
+                    raise NotImplementedError
+
+                case "Green Cat":
+                    raise NotImplementedError
+
+                case "Black Cat":
+                    raise NotImplementedError
 
 
 class Text:
@@ -245,6 +263,7 @@ class Cat(Sprite):
                           self._rect[2], self._rect[3])
         self.__internal_timer = datetime.now()
         self.__rotation = 0
+        self.__cat_type = args[1][0][args[1][0].rindex("/") + 1: args[1][0].rindex(".")]
 
     def enlarge(self, mod_scale_x: int, mod_scale_y: int, scale_limit: Tuple[int, int]) -> None:
         """
@@ -254,7 +273,7 @@ class Cat(Sprite):
         :param Tuple[int, int] scale_limit: The point at which the sprite cannot enlarge or shrink any further.
         :return: bool, whether the image has finished appearing/enlarging or not.
         """
-        if (datetime.now() - self.__internal_timer).total_seconds() > 1 and self.__rotation % 360 == 0:
+        if (datetime.now() - self.__internal_timer).total_seconds() > 0.1 and self.__rotation % 360 == 0:
             self.__scale_size = (max(self.__scale_size[0] + mod_scale_x, self._image.get_width() - 13), max(self.__scale_size[1] + mod_scale_y, self._image.get_height() - 13))
             self.move_pos(-mod_scale_x, -mod_scale_y, False)
             self._surface.blit(pygame.transform.scale(self._image, self.__scale_size), self._rect)
@@ -299,6 +318,10 @@ class Cat(Sprite):
     @property
     def queued_action(self):
         return self.__queued_action
+
+    @property
+    def cat_type(self) -> str:
+        return self.__cat_type
 
 
 class Player(Sprite):
@@ -360,14 +383,17 @@ class Game:
 
         self.__collision_manager = CollisionManager()
         self.__sprite_manager = SpriteManager()
-        self.__sprite_manager.add_objects("White Cat", Cat, 5, self.__surface, ["Graphics/cat.png", ""], (0, 0))
+
+        for cat_type in CAT_TYPES:
+            self.__sprite_manager.add_objects(f"{cat_type} Cat", Cat, 5, self.__surface,
+                                              [f"Graphics/{cat_type} Cat.png", ""], (0, 0))
 
         for i in range(1, 3):  # repeats for stop - start number of players
             self.__sprite_manager.add_objects(f"Player{i}", Player, 1, self.__surface,
                                               ["Graphics/bat.png", "Graphics/bat_outline.png"],
                                               (0, 0))
 
-        self.__sprite_manager.add_objects("Ball", Ball, 1, self.__surface,
+        self.__sprite_manager.add_objects("Ball", Ball, 15, self.__surface,
                                           ["Graphics/ball.png", "Graphics/ball_outline.png"],
                                           (0, 0))
 
@@ -432,10 +458,10 @@ class Game:
         Randomly places a cat on a particular area of the screen.
         :return: None
         """
-        # every 6 amount of seconds
-        if (datetime.now() - self.__timer).total_seconds() > 3:
+        # every 2.5 amount of seconds
+        if (datetime.now() - self.__timer).total_seconds() > 2.5:
             # randomly choose a cat of varying probability, and make it appear at a random point on the screen.
-            cat_type = choice(['White'])
+            cat_type = choice((['White'] * 35) + (["Red"] * 20) + (["Green"] * 20) + (["Blue"] * 20) + (["Black"] * 5))
             self.__sprite_manager.object_pool[f"{cat_type} Cat"][randrange(0, len(self.__sprite_manager.object_pool[f"{cat_type} Cat"]))].activate()
             self.__timer = datetime.now()
 
@@ -444,7 +470,7 @@ class Game:
         Checks whether any actions need performing from a cat object.
         :return: None
         """
-        for active_cat in filter(lambda x: x.queued_action is not None, self.__sprite_manager.object_pool["White Cat"]):
+        for active_cat in filter(lambda x: x.queued_action is not None, itertools.chain.from_iterable([self.__sprite_manager.object_pool[f"{cat_type} Cat"] for cat_type in CAT_TYPES])):
             # checks whether the type of function queued, if any, and if it has more than 1 parameter we know to enlarge
             if active_cat.queued_action and len(str(signature(active_cat.queued_action[0]))[1:-1].split(", ")) > 1:
                 active_cat.queued_action[0](active_cat.queued_action[1], active_cat.queued_action[2], active_cat.queued_action[3])
