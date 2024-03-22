@@ -43,6 +43,22 @@ class SpriteManager:
         return cls.__instance
 
 
+class ParticleSystem:
+    ...
+
+
+class Particle:
+    def __init__(self, start_size: Tuple[int, int], duration: int):
+        self.__start_size = start_size
+        self.__duration = duration
+
+    def update(self):
+        """
+        Updates the size, colour, and position of the ...
+        """
+        ...
+
+
 class CollisionManager:
     @staticmethod
     def check_bat_ball(bat_pool: List[Any], ball_pool: List[Any]) -> None:
