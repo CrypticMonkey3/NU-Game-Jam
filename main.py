@@ -86,7 +86,7 @@ class CollisionManager:
                 case "White Cat":
                     for inactive_ball in list(filter(lambda x: x.direction == (0, 0), ball_pool))[:2]:
                         inactive_ball.direction = (choice([-1, 1]), choice([-1, 1]))
-                        inactive_ball.move_pos(collision[1].rect.left, collision[1].rect.top)
+                        inactive_ball.move_pos(collision[1].rect.left - inactive_ball.rect.left, collision[1].rect.top - inactive_ball.rect.top)
 
                 case "Red Cat":
                     print("\033[31mRed Cat hit\033[0m")
@@ -406,9 +406,13 @@ class Ball(Sprite):
             Beep(441, 16)
 
         elif self._rect[0] == 0:
+            self._direction = (0, 0)
+            self._speed = self._base_speed
             return 2
 
         elif self._rect[0] == self._surface.get_width() - self._rect.width:
+            self._direction = (0, 0)
+            self._speed = self._base_speed
             return 1
 
         return 0
@@ -562,13 +566,15 @@ class Game:
         elif not self.__sprite_manager.object_pool["Text"][1].message:  # else if not counting down, run the game
             self.__check_inputs()
 
-            # move all balls that have don't have a direction of (0, 0), GOT TO DRAW THEM AS WELL
-            player_scores = list(filter(lambda x: x != 0, [active_ball.move_pos(active_ball.velocity[0], active_ball.velocity[1]) for active_ball in filter(lambda x: x.direction != (0, 0), self.__sprite_manager.object_pool["Ball"])]))
+            # move all balls that have don't have a direction of (0, 0)
+            active_balls = list(filter(lambda x: x.direction != (0, 0), self.__sprite_manager.object_pool["Ball"]))
+            # need the inline-if below to check direction != (0, 0) AGAIN because move_pos might change the direction to
+            # (0, 0) in which case, the ball shouldn't be drawn.
+            player_scores = list(filter(lambda x: x != 0, [(active_ball.move_pos(active_ball.velocity[0], active_ball.velocity[1]), active_ball.draw() if active_ball.direction != (0, 0) else None)[0] for active_ball in active_balls]))
 
             self.__spawn_cats()
             self.__check_cats()
 
-            self.__sprite_manager.object_pool["Ball"][0].draw()  # Ball 1
             self.__sprite_manager.object_pool["Player1"][0].draw()  # Player 1
             self.__sprite_manager.object_pool["Player2"][0].draw()  # Player 2
 
@@ -581,7 +587,7 @@ class Game:
                 self.__sprite_manager.object_pool["Player2"][0].score += player_scores.count(2)
                 Beep(600, 32)
 
-            if len(player_scores) == 1:
+            if len(active_balls) == 0:
                 self.__reset_game()
 
     def __get_cats(self) -> Iterator:
